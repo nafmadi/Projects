@@ -1,0 +1,164 @@
+---
+title: "410 Project PCA Analysis"
+author: "Madison Nafarrete"
+date: "2024-04-28"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+## Including 
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+**Loading Libraries**
+```{r}
+library(tidyverse)
+library(tinytex)
+library(dplyr)
+library(ggmosaic)
+library(ggrepel)
+library(tidyr)
+library(janitor)
+library(GGally)
+library(factoextra)
+library(FactoMineR)
+library(corrplot)
+```
+
+
+**For this project:**  
+1. A Data Science topic: Principle Component Analysis (PCA)   
+2. A Data Set: MLB Pitching Data (source: https://www.kaggle.com/datasets/open-source-sports/baseball-databank)  
+3. PCA reduces the number of variables or features in a data set while still preserving the most important information like major trends or patterns 
+
+**What is Principal Component Analysis?**  
+Principal Component Analysis (PCA) is a method to use on a data set to figure out which numeric variables covary. (Bruce et al. Practical statistics for data scientists pgs 284-285) The goal of PCA is to shrink your data set into a smaller set of variables, which are called "principal components". These principal components explain the majority variability in your original data set. The code chunk below is an example of a PCA from the 'help' menu when looking up the function for PCA analysis ('PCA'). PCA uses variance as a form of measurement for each principal component using eigenvalues. Eigenvalues in PCA explain the variance of each principal component.
+
+**Data Cleaning**  
+When prepping the data set for a principal components analysis make sure your data set is cleaned and optimized for your analysis. The data set in this example is already cleaned since it is a data set built into R. However, when loading your own data set make sure that there is only data you want to analyze and avoid data character(chr) data, so if there is chr data make sure to remove or not include them in your analysis.
+
+```{r}
+# function in R to conduct a PCA
+murder_res = PCA(USArrests, scale.unit = TRUE, graph = TRUE)
+
+#visualizing eigenvalues
+get_eigenvalue(murder_res)
+fviz_eig(murder_res)
+
+```
+**Parts of PCA**  
+In using PCA(), the data set and variables in the data set are already standardized. Also, with graph = TRUE you can see that the function already provides visualizations and there is no need to do them separately. The standard deviations for each component represent the covariance matrix of the data by taking the square roots of its eigenvalues. These standard deviations show the amount of variability within the data explained by each principal component. A principal component "explains most of the variability of the full set of variables" (Bruce et al. Practical pg. 285)  The 'Rotation Matrix' is the loadings of the variables in the original data set, loadings are the "weights that transform the predictors into components"(Bruce et al. Practical pg. 285).The points in the biplot above represent each state and how they are projected onto the first two components, and the vectors represent the variables in which the direction and magnitude show the variables contribution to each component. The 'biplot()' function is a graphical representation of observations and variables within the PCA. Recall, that PCA is used to "reduce the dimensionality of a data set consisting of a large number of interrelated variables, while retaining as much as possible of the variation present in the data set" (Mishra et al. Principal component analysis) Shrinking dimensions is reminiscent of matrices and matrixes, so the goal, generally, is to choose variables that have strong correlation with what what you are analyzing and visualize those patterns to see how much each variable affects the variance within a data set. 
+
+**Interpretation of PCA Analysis Example**
+The summary results shows that the first component has the strong negative correlation to all the original variables that were analyzed. Which suggest that 'Rape', 'Assault', and 'Murder' have a possibility to covary, so The second component has a strong positive correlation with the 'Rape' variable. The third component has a strong negative correlation with 'Assault'.
+
+**Interpretation Biplots:**
+By examining the position of data points in relation to each other and the direction and length of arrows, you can interpret the relationship between the observations and variables in the dataset. Data points that align with the direction of an arrow have high values for the corresponding variable. On the other hand, data points that point in the opposite direction have low values for the variable. Variables that point in the same direction as each other have similar patterns of variation and are similar in contribution to the principal components.
+
+**Interpretation of Correlation Circle and Correlation Plots**  
+The correlation circle does exactly what the names implies. It visualizes the correlation between all variables. If variables are negatively correlated with each other they would be facing opposite of each other. If there is strong correlation will usually group and align together. Correlation plots also visualize correlation between variables within a data set. This can be useful in PCA because the analysis depends on variables that have strong correlation with one another.
+
+**Interpretation of Scree Plots**  
+A scree plot is a plot of the variances of the principal components NOT the original data set. It shows the importance of each component explained as a proportion of explained variance. The scree plot helps you decide how many principal components to retain in your analysis. Typically, you retain the principal components before the elbow point on the scree plot, as they capture the majority of the variance in the data. Principal components beyond the elbow point (where the data flattens out) may capture noise or irrelevant variability in the data and can be discarded without significant loss of information.  
+
+**Question:** Which principal components of pitching contribute to being the best fantasy baseball pitcher?
+
+**Loading CSV File & Data Cleaning**  
+    First, we load the csv file 'Pitching.csv', which includes the years in which baseball first became a national sport. Then, filter out the years in which fantasy baseball is not relevant. For this project, I have specifically chosen the 2015 season because it is the most recent season within this data set relevant to how fantasy baseball points are scored. In order to have a good PCA analysis, you have to filter out the data set to include only the variables that are relevant to what you are analyzing. 
+```{r echo=FALSE}
+# Loading in CSV file
+pitch = read.csv("Pitching.csv")
+#View(pitch)
+
+# Filtering the Data Set to show only 2015 Season
+pitch_fant_2015 = pitch |>
+  filter(yearID == 2015)
+knitr::kable(head(pitch_fant_2015), caption = "Table for Fantasy MLB Pitchers (first 6 pitchers shown) (2015 Season)")
+#nrow(pitch_fant_2015)
+
+# Selecting the columns where it pertains to pitching stats
+pitchers_fantasy_2015 = pitch_fant_2015 |>
+   select(c(W, L, SO, ER, SV))
+#pitchers_fantasy_2015
+
+# table for MLB Pitchers 2015 Season
+knitr::kable(head(pitchers_fantasy_2015), caption = "Table for Pitchers for Fantasy Baseball(2015 Season) ")
+#nrow(pitchers_fantasy_2015)
+```
+
+**Exploratory Data Analysis: Visualizations**  
+Before doing a PCA it is important to do some exploratory data analysis to check and visualize your data. Below is a correlation plot to check the correlation of each variables to each other. In PCA, correlation is important because it will affect the outcome of variances for each variable and how they play into fantasy points.
+
+**Correlation Plot**  
+The correlation plots shows that the selected variables for this PCA have weak to strong correlation with each other. There is an exception as saves and earned runs are weakly negatively correlated with each other. Overall, the correlation plot shows mid to strong positive correlation between all variables with saves (SV) being the least correlated most variables. There is also not many negatively correlated variables which shows that most of the impact of these variables is positive in terms of accruing fantasy points during the season. As expected, wins(W) has a strong positive correlation to losses (L), strikeouts(SO) and Earned Runs (ER), since wins has such a strong correlation with almost all the other variables within the analysis the component weighted with wins will have highest proportion of variance to the explanation of fantasy points.
+
+```{r}
+# Correlation Plots of Variables
+ggpairs(pitchers_fantasy_2015)
+
+p_cor = cor(pitchers_fantasy_2015)
+corrplot(p_cor, method = 'number')
+```
+**Scatterplots**  
+I used scattplots to compare the relationship of each variable. More often than not the plots showed patterns which is a sign of correlation between each other. The highest correlation, as shown in the correlation plot above, is between Losses and Earned Runs with .900. The closer the correlation is to 1, the stronger the correlation is between the two variables. With the ER and Losses plot you can see that several of the points are aligned, clustered and not randomly scattered. Wins and Strikeouts also have a strong positive correlation with each other and showed the points clustered and patterned in straight lines. The colored points represent players, however there is over 800 players for this season, some points may be overlapping. Additionally, I had to turn the legend off because it would block the whole graph.
+```{r }
+# Scatterplot
+ggplot(pitch_fant_2015, aes(x = ER, y = L, color = playerID)) + xlab("Earned Runs") + ylab("Player Losses") + geom_point() + ggtitle("Scatterplot for Wins vs Losses") + geom_abline() + guides(color = FALSE)
+```
+```{r echo=FALSE}
+ggplot(pitch_fant_2015, aes(x = W, y = L, color = playerID)) + xlab("Wins") + ylab("Player Losses") + geom_point() + ggtitle("Scatterplot for Wins vs Losses") + guides(color = FALSE)
+
+ggplot(pitch_fant_2015, aes(x = W, y = SO, color = playerID)) + xlab("Player Wins") + ylab("Strikeouts by Player") + geom_point() + ggtitle("Scatterplot for Wins vs Strikeouts") + guides(color = FALSE)
+
+ggplot(pitch_fant_2015, aes(x = W, y = L, color = playerID)) + xlab("Player Wins") + ylab("Player Losses") + geom_point() + ggtitle("Scatterplot for Wins vs Losses") + geom_abline() + guides(color = FALSE)
+
+ggplot(pitch_fant_2015, aes(x = ER, y = SO, color = playerID)) + xlab("Player Earned Runs Given Up (for the Season)") + ylab("Strikeouts per Pitcher") + geom_point() + ggtitle("Scatterplot for Earned Runs vs Strikeouts") + geom_abline() + guides(color = FALSE)
+```
+
+
+**Principal Component Analysis on 2015 Fantasy MLB Season for Pitchers**  
+I am using PCA() from the FactoMineR package which is now in base R. This specific PCA() function already runs most of the visualizations for PCA within the function so plotting the scree plot and biplot separately is not necessary. Diving into this principal component analysis will further help understand how these specific pitching statisitcs contribute to fantasy points.
+```{r}
+# In-depth results of PCA
+pca_res = PCA(pitchers_fantasy_2015, scale.unit = TRUE, ncp = 5, graph = TRUE)
+# shows functions to further analyze PCA
+#pca_res
+
+#visualizing eigenvalues
+#displays the eigenvalues, variance percentage, and cumulative variance
+get_eigenvalue(pca_res)
+# scree plot
+fviz_eig(pca_res)
+
+# Extracting results for variables
+pca_pitch = get_pca_var(pca_res)
+pca_pitch
+
+pca_pitch$cor # correlations btwn vars and dimensions
+pca_pitch$cos2 # quality of representation
+pca_pitch$contrib # contributions of the variables to the principal components
+```
+
+**Results**  
+The biplot above shows that the first component is responsible for 69.6% of the variation, while the second component has the second highest explanation in variation with 20.3%. After the second component there is a steep drop off for components 3, 4, and 5, the last two eigenvalue variances are less than 2% which means they have little impact on fantasy points. The circle correlation plot shows that most of the variables are positively correlated with each other, the exception is saves (SV) where it accounts for most of the variability in component 2. The pca_pitch$cos2 function represents how well the principal components explain the variability of the variables in the original data set. So, you can see principal component 1 represents four of the  five variables, meaning they mostly contribute to principal component one, while the rest of the components have very little impact on the variables from the original data set. In relation to fantasy points for these visualizations, there is a strong correlation between the variables and their contributions to fantasy points. The scree plot shows that component 1 is responsible for most of the variables, as it contributes to over 60% variation, as mentioned before. In addition, the first four variables have the most affect on fantasy points, while saves is difficult to interpret because not all pitchers get saves and saves don't contribute many points compared to getting a win.   
+
+**Conclusion**
+In conclusion, using principal component analysis to explore the variables put into fantasy pitching was very interesting and insightful. The use of variance and correlation to figure out which variables had the most impact on each principal component, and being able to visualize that using different plots such as the scree plot made it easier to interpret the effect the variables and components had on each other.  It shed light on why fantasy points are distributed the way they are. For example, wins being the most points and stats like saves do not get as many points.
+
+**Future**
+In the future, I think it would be cool to try and test hitters with this method too. It would be interesting to see if someone can find a set algorithm to optimize fantasy points for their team by using PCA. Hopefully, it can be useful in sports science so that players can figure out how to optimize their pitching arsenal and see how they can improve during the season or future seasons. The use of PCA can be expanded besides being used for census, financial and agricultural data. 
+
+**Bibliography**
+Bruce, Peter C., et al. Practical Statistics for Data Scientists: 50+ Essential Concepts Using r and Python. O’Reilly Media, 2020. 
+
+Kassambara, Alboukadel. Practical Guide to Principal Component Methods in R: PCA, (M)Ca, FAMD, MFA, HCPC, Factoextra. STHDA, 2017.
+
+Mishra, Sidharth, et al. “Principal component analysis.” International Journal of Livestock Research, 2017, p. 1, https://doi.org/10.5455/ijlr.20170415115235. 
